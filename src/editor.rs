@@ -11,23 +11,27 @@ impl Editor {
     }
 
     pub fn run(&self) {
-        enable_raw_mode().unwrap();
+        if let Err(e) = self.repl() {
+            panic!("{e:#?}");
+        }
+        println!("Goodbye. \r");
+    }
+
+    fn repl(&self) -> Result<(), std::io::Error> {
+        enable_raw_mode()?;
 
         loop {
-            match read() {
-                Ok(Event::Key(key_event)) => {
-                    println!("{key_event:?} \r");
-                    if let KeyCode::Char(c) = key_event.code {
-                        if c == 'q' {
-                            break;
-                        }
+            if let Event::Key(key_event) = read()? {
+                println!("{key_event:?} \r");
+                if let KeyCode::Char(c) = key_event.code {
+                    if c == 'q' {
+                        break;
                     }
                 }
-                Err(err) => println!("Error : {err}"),
-                _ => (),
             }
         }
 
-        disable_raw_mode().unwrap();
+        disable_raw_mode()?;
+        Ok(())
     }
 }
