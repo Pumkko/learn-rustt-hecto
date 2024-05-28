@@ -16,17 +16,14 @@ impl Editor {
         loop {
             match read() {
                 Ok(Event::Key(key_event)) => {
-                    println!("{:?} \r", key_event);
-                    match key_event.code {
-                        KeyCode::Char(c) => {
-                            if c == 'q' {
-                                break;
-                            }
+                    println!("{key_event:?} \r");
+                    if let KeyCode::Char(c) = key_event.code {
+                        if c == 'q' {
+                            break;
                         }
-                        _ => (),
                     }
                 }
-                Err(err) => println!("Error : {}", err),
+                Err(err) => println!("Error : {err}"),
                 _ => (),
             }
         }
