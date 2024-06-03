@@ -10,16 +10,23 @@ mod terminal;
 
 pub struct Editor {
     should_quit: bool,
+    terminal: Terminal,
 }
 
 impl Editor {
-    pub fn default() -> Self {
-        Editor { should_quit: false }
+    pub fn default() -> std::io::Result<Self> {
+        let terminal = Terminal::default()?;
+
+        Ok(Editor {
+            should_quit: false,
+            terminal,
+        })
     }
+
     pub fn run(&mut self) -> std::io::Result<()> {
-        Terminal::initialize()?;
+        self.terminal.initialize()?;
         self.repl()?;
-        Terminal::terminate()?;
+        self.terminal.terminate()?;
         Ok(())
     }
 
@@ -43,10 +50,10 @@ impl Editor {
                 Char('q') if *modifiers == KeyModifiers::CONTROL => {
                     self.should_quit = true;
                 }
-                KeyCode::Up => Terminal::cursor_move_up()?,
-                KeyCode::Down => Terminal::cursor_move_down()?,
-                KeyCode::Left => Terminal::cursor_move_left()?,
-                KeyCode::Right => Terminal::cursor_move_right()?,
+                KeyCode::Up => self.terminal.cursor_move_up()?,
+                KeyCode::Down => self.terminal.cursor_move_down()?,
+                KeyCode::Left => self.terminal.cursor_move_left()?,
+                KeyCode::Right => self.terminal.cursor_move_right()?,
                 _ => (),
             }
         }
@@ -55,7 +62,7 @@ impl Editor {
     }
     fn refresh_screen(&self) -> Result<(), std::io::Error> {
         if self.should_quit {
-            Terminal::clear_screen()?;
+            self.terminal.clear_screen()?;
             print!("Goodbye.\r\n");
         }
         Ok(())
