@@ -1,5 +1,4 @@
 use std::{
-    rc::Rc,
     sync::{Arc, Mutex},
     thread,
     time::Duration,
@@ -16,14 +15,14 @@ use terminal::{Direction, Terminal};
 mod terminal;
 
 pub struct Editor {
-    should_quit: bool,
+    should_quit: Arc<Mutex<bool>>,
     direction: Arc<Mutex<Direction>>,
 }
 
 impl Editor {
     pub fn default() -> Self {
         Editor {
-            should_quit: false,
+            should_quit: Arc::new(Mutex::new(false)),
             direction: Arc::new(Mutex::new(Direction::Right)),
         }
     }
@@ -31,14 +30,22 @@ impl Editor {
     pub fn run(&mut self) -> std::io::Result<()> {
         Terminal::initialize()?;
 
-        let direction = Arc::clone(&self.direction);
-        thread::spawn(move || loop {
+        let direction = self.direction.clone();
+        let should_quit = self.should_quit.clone();
+        let handle = thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(1));
+
+            if *should_quit.lock().unwrap() {
+                return;
+            }
+
             let direction_lock = direction.lock().unwrap();
             Terminal::move_cursor(*direction_lock).unwrap();
         });
 
         self.repl()?;
+
+        handle.join().unwrap();
         Terminal::terminate()?;
         Ok(())
     }
@@ -48,7 +55,7 @@ impl Editor {
             let event = read()?;
             self.evaluate_event(&event)?;
             self.refresh_screen()?;
-            if self.should_quit {
+            if *self.should_quit.clone().lock().unwrap() {
                 break;
             }
         }
@@ -59,11 +66,11 @@ impl Editor {
             code, modifiers, ..
         }) = event
         {
-            let direction = Arc::clone(&self.direction);
+            let direction = self.direction.clone();
             let mut direction_lock = direction.lock().unwrap();
             match code {
                 Char('q') if *modifiers == KeyModifiers::CONTROL => {
-                    self.should_quit = true;
+                    *self.should_quit.clone().lock().unwrap() = true;
                 }
                 KeyCode::Up => {
                     *direction_lock = Direction::Up;
@@ -88,7 +95,7 @@ impl Editor {
         Ok(())
     }
     fn refresh_screen(&self) -> Result<(), std::io::Error> {
-        if self.should_quit {
+        if *self.should_quit.clone().lock().unwrap() {
             Terminal::clear_screen()?;
             print!("Goodbye.\r\n");
         }
