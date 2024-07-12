@@ -3,7 +3,8 @@ use std::io::stdout;
 use crossterm::{
     cursor::{self},
     event::KeyCode,
-    execute, queue, style,
+    execute, queue,
+    style::{self, style, StyledContent, Stylize},
     terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType},
 };
 
@@ -35,11 +36,18 @@ impl Terminal {
         Self::clear_screen()?;
 
         let mut stdout = stdout();
-        queue!(stdout, cursor::MoveTo(5, 6), style::Print("*"))?;
+        queue!(
+            stdout,
+            cursor::Hide,
+            cursor::MoveTo(5, 6),
+            style::Print("*")
+        )?;
         execute!(stdout, cursor::MoveTo(1, 0))
     }
 
     pub fn terminate() -> Result<(), std::io::Error> {
+        let mut stdout = stdout();
+        queue!(stdout, cursor::Show,)?;
         disable_raw_mode()
     }
 

@@ -1,7 +1,6 @@
 use std::{
     sync::{Arc, Mutex},
     thread,
-    time::Duration,
 };
 
 use crossterm::event::{
@@ -10,8 +9,10 @@ use crossterm::event::{
     KeyCode::{self, Char},
     KeyEvent, KeyModifiers,
 };
+use snake_renderer::render_default_snake;
 use terminal::{Direction, Terminal};
 
+mod snake_renderer;
 mod terminal;
 
 pub struct Editor {
@@ -32,15 +33,8 @@ impl Editor {
 
         let direction = self.direction.clone();
         let should_quit = self.should_quit.clone();
-        let handle = thread::spawn(move || loop {
-            thread::sleep(Duration::from_secs(1));
-
-            if *should_quit.lock().unwrap() {
-                return;
-            }
-
-            let direction_lock = direction.lock().unwrap();
-            Terminal::move_cursor(*direction_lock).unwrap();
+        let handle = thread::spawn(move || {
+            render_default_snake(should_quit);
         });
 
         self.repl()?;
