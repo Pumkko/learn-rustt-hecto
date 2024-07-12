@@ -6,6 +6,14 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType},
 };
 
+#[derive(Clone, Copy, Debug)]
+pub enum Direction {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
 pub struct Terminal {}
 
 impl Terminal {
@@ -41,5 +49,14 @@ impl Terminal {
 
     pub fn cursor_move_left() -> std::io::Result<()> {
         execute!(stdout(), cursor::MoveLeft(1))
+    }
+
+    pub fn move_cursor(direction: Direction) -> std::io::Result<()> {
+        match direction {
+            Direction::Down => Self::cursor_move_down(),
+            Direction::Up => Self::cursor_move_up(),
+            Direction::Left => Self::cursor_move_left(),
+            Direction::Right => Self::cursor_move_right(),
+        }
     }
 }
