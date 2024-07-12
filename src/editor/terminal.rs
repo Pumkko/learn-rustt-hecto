@@ -2,16 +2,29 @@ use std::io::stdout;
 
 use crossterm::{
     cursor::{self},
+    event::KeyCode,
     execute, queue, style,
     terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType},
 };
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Direction {
     Left,
     Right,
     Up,
     Down,
+}
+
+impl From<&KeyCode> for Direction {
+    fn from(value: &KeyCode) -> Self {
+        match value {
+            KeyCode::Up => Direction::Up,
+            KeyCode::Down => Direction::Down,
+            KeyCode::Left => Direction::Left,
+            KeyCode::Right => Direction::Right,
+            _ => panic!("Can only map from up, left, down, right keycode"),
+        }
+    }
 }
 
 pub struct Terminal {}

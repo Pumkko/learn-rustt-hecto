@@ -61,32 +61,47 @@ impl Editor {
         }
         Ok(())
     }
+
+    fn move_cursor(&self, direction: Direction) -> std::io::Result<()> {
+        let direction_clone = self.direction.clone();
+        let mut direction_lock = direction_clone.lock().unwrap();
+
+        if *direction_lock == direction {
+            Ok(())
+        } else {
+            match direction {
+                Direction::Up => {
+                    *direction_lock = Direction::Up;
+                    Terminal::cursor_move_up()
+                }
+                Direction::Down => {
+                    *direction_lock = Direction::Down;
+                    Terminal::cursor_move_down()
+                }
+                Direction::Left => {
+                    *direction_lock = Direction::Left;
+                    Terminal::cursor_move_left()
+                }
+                Direction::Right => {
+                    *direction_lock = Direction::Right;
+                    Terminal::cursor_move_right()
+                }
+            }
+        }
+    }
+
     fn evaluate_event(&mut self, event: &Event) -> std::io::Result<()> {
         if let Key(KeyEvent {
             code, modifiers, ..
         }) = event
         {
-            let direction = self.direction.clone();
-            let mut direction_lock = direction.lock().unwrap();
             match code {
                 Char('q') if *modifiers == KeyModifiers::CONTROL => {
                     *self.should_quit.clone().lock().unwrap() = true;
                 }
-                KeyCode::Up => {
-                    *direction_lock = Direction::Up;
-                    Terminal::cursor_move_up()?
-                }
-                KeyCode::Down => {
-                    *direction_lock = Direction::Down;
-                    Terminal::cursor_move_down()?
-                }
-                KeyCode::Left => {
-                    *direction_lock = Direction::Left;
-                    Terminal::cursor_move_left()?
-                }
-                KeyCode::Right => {
-                    *direction_lock = Direction::Right;
-                    Terminal::cursor_move_right()?
+                KeyCode::Up | KeyCode::Left | KeyCode::Down | KeyCode::Right => {
+                    let direction: Direction = code.into();
+                    self.move_cursor(direction).unwrap();
                 }
                 _ => (),
             }
