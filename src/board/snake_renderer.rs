@@ -22,7 +22,7 @@ struct Snake {
     pub parts: VecDeque<SnakePartPosition>,
 }
 
-const SNAKE_INITIAL_SIZE: u16 = 4;
+const SNAKE_INITIAL_SIZE: u16 = 8;
 
 fn get_default_snake(direction: &Arc<Mutex<Direction>>) -> Snake {
     let direction_lock = direction.lock().unwrap();
@@ -39,6 +39,22 @@ fn get_default_snake(direction: &Arc<Mutex<Direction>>) -> Snake {
     }
 
     snake
+}
+
+fn is_x_direction(direction: Direction) -> bool {
+    return direction == Direction::Left || direction == Direction::Right;
+}
+
+fn is_y_direction(direction: Direction) -> bool {
+    return direction == Direction::Up || direction == Direction::Down;
+}
+
+fn are_direction_x_axis(d1: Direction, d2: Direction) -> bool {
+    is_x_direction(d1) && is_x_direction(d2)
+}
+
+fn are_direction_y_axis(d1: Direction, d2: Direction) -> bool {
+    is_y_direction(d1) && is_y_direction(d2)
 }
 
 pub fn render_snake(should_quit: Arc<Mutex<bool>>, direction: Arc<Mutex<Direction>>) {
@@ -62,9 +78,16 @@ pub fn render_snake(should_quit: Arc<Mutex<bool>>, direction: Arc<Mutex<Directio
         Terminal::write_string_to(&mut stdout, front.column, front.row, " ");
 
         let direction_lock = *direction.lock().unwrap();
-        snake.current_direction = direction_lock;
 
-        let new_position = match direction_lock {
+        let should_ignore_new_direction =
+            are_direction_x_axis(direction_lock, snake.current_direction)
+                || are_direction_y_axis(direction_lock, snake.current_direction);
+
+        if !should_ignore_new_direction {
+            snake.current_direction = direction_lock;
+        }
+
+        let new_position = match snake.current_direction {
             Direction::Right => SnakePartPosition {
                 column: back.column.saturating_add(1),
                 row: back.row,
