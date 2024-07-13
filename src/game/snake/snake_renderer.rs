@@ -1,13 +1,10 @@
 use std::{
     io::stdout,
     sync::{Arc, Mutex},
-    thread,
-    time::Duration,
 };
 
-use crossterm::{queue, style};
-
 use crate::game::terminal::Terminal;
+use crossterm::{execute, style};
 
 use super::{
     direction::Direction,
@@ -38,20 +35,10 @@ fn get_snake_next_end_position(
     }
 }
 
-pub fn render_snake_loop(arc_direction: &Arc<Mutex<Direction>>, snake: &mut Snake) {
-    thread::sleep(Duration::from_millis(200));
-
-    let snake_begin_position = snake.parts.pop_front().unwrap();
-    let snake_end_position = snake.parts.back().unwrap();
-
-    let mut stdout = stdout();
-    Terminal::write_string_to(
-        &mut stdout,
-        snake_begin_position.column,
-        snake_begin_position.row,
-        " ",
-    );
-
+fn update_snake_direction_with_new_direction(
+    arc_direction: &Arc<Mutex<Direction>>,
+    snake: &mut Snake,
+) {
     let direction = *arc_direction.lock().unwrap();
 
     let should_ignore_new_direction = direction.are_both_on_x_axis(snake.current_direction)
@@ -60,8 +47,24 @@ pub fn render_snake_loop(arc_direction: &Arc<Mutex<Direction>>, snake: &mut Snak
     if !should_ignore_new_direction {
         snake.current_direction = direction;
     }
+}
 
-    let snake_new_end_position = get_snake_next_end_position(snake_end_position, direction);
+pub fn move_snake_towards_direction(arc_direction: &Arc<Mutex<Direction>>, snake: &mut Snake) {
+    update_snake_direction_with_new_direction(arc_direction, snake);
+
+    let snake_tail_position = snake.parts.pop_front().unwrap();
+    let snake_head_position = snake.parts.back().unwrap();
+
+    let mut stdout = stdout();
+    Terminal::write_string_to(
+        &mut stdout,
+        snake_tail_position.column,
+        snake_tail_position.row,
+        " ",
+    );
+
+    let snake_new_end_position =
+        get_snake_next_end_position(snake_head_position, snake.current_direction);
 
     Terminal::write_string_to(
         &mut stdout,
@@ -75,6 +78,6 @@ pub fn render_snake_loop(arc_direction: &Arc<Mutex<Direction>>, snake: &mut Snak
 pub fn render_default_snake(snake: &Snake) {
     let mut stdout = stdout();
     for _ in &snake.parts {
-        queue!(stdout, style::Print("X")).unwrap();
+        execute!(stdout, style::Print("X")).unwrap();
     }
 }

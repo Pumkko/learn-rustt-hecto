@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use super::direction::Direction;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SnakePartPosition {
     pub row: u16,
     pub column: u16,
