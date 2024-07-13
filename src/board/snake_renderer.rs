@@ -41,7 +41,7 @@ fn get_default_snake(direction: &Arc<Mutex<Direction>>) -> Snake {
     snake
 }
 
-pub fn render_default_snake(should_quit: Arc<Mutex<bool>>, direction: Arc<Mutex<Direction>>) {
+pub fn render_snake(should_quit: Arc<Mutex<bool>>, direction: Arc<Mutex<Direction>>) {
     let mut snake = get_default_snake(&direction);
 
     let mut stdout = stdout();
@@ -58,8 +58,6 @@ pub fn render_default_snake(should_quit: Arc<Mutex<bool>>, direction: Arc<Mutex<
 
         let front = snake.parts.pop_front().unwrap();
         let back = snake.parts.back().unwrap();
-
-        execute!(stdout, crossterm::terminal::BeginSynchronizedUpdate).unwrap();
 
         Terminal::write_string_to(&mut stdout, front.column, front.row, " ");
 
@@ -87,7 +85,5 @@ pub fn render_default_snake(should_quit: Arc<Mutex<bool>>, direction: Arc<Mutex<
 
         Terminal::write_string_to(&mut stdout, new_position.column, new_position.row, "X");
         snake.parts.push_back(new_position);
-
-        execute!(stdout, crossterm::terminal::EndSynchronizedUpdate).unwrap();
     }
 }

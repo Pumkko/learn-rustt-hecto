@@ -9,7 +9,7 @@ use crossterm::event::{
     KeyCode::{self, Char},
     KeyEvent, KeyModifiers,
 };
-use snake_renderer::render_default_snake;
+use snake_renderer::render_snake;
 use terminal::Terminal;
 
 mod snake_renderer;
@@ -54,7 +54,7 @@ impl Editor {
         let direction = self.direction.clone();
         let should_quit = self.should_quit.clone();
         let handle = thread::spawn(move || {
-            render_default_snake(should_quit, direction);
+            render_snake(should_quit, direction);
         });
 
         self.repl()?;
