@@ -1,4 +1,4 @@
-use std::io::stdout;
+use std::io::{stdout, Stdout};
 
 use crossterm::{
     cursor::{self},
@@ -33,51 +33,30 @@ pub struct Terminal {}
 impl Terminal {
     pub fn initialize() -> Result<(), std::io::Error> {
         enable_raw_mode()?;
-        Self::clear_screen()?;
 
         let mut stdout = stdout();
+
         queue!(
             stdout,
-            cursor::Hide,
-            cursor::MoveTo(5, 6),
-            style::Print("*")
-        )?;
-        execute!(stdout, cursor::MoveTo(1, 0))
+            cursor::MoveTo(0, 0),
+            Clear(ClearType::All),
+            cursor::Hide
+        )
     }
 
     pub fn terminate() -> Result<(), std::io::Error> {
         let mut stdout = stdout();
-        queue!(stdout, cursor::Show,)?;
+        queue!(
+            stdout,
+            cursor::MoveTo(0, 0),
+            Clear(ClearType::All),
+            style::Print("Goodbye\r\n")
+        )?;
+        queue!(stdout, cursor::Show)?;
         disable_raw_mode()
     }
 
-    pub fn clear_screen() -> Result<(), std::io::Error> {
-        let mut stdout = stdout();
-        execute!(stdout, cursor::MoveTo(0, 0), Clear(ClearType::All))
-    }
-
-    pub fn cursor_move_up() -> std::io::Result<()> {
-        execute!(stdout(), cursor::MoveUp(1))
-    }
-
-    pub fn cursor_move_down() -> std::io::Result<()> {
-        execute!(stdout(), cursor::MoveDown(1))
-    }
-
-    pub fn cursor_move_right() -> std::io::Result<()> {
-        execute!(stdout(), cursor::MoveRight(1))
-    }
-
-    pub fn cursor_move_left() -> std::io::Result<()> {
-        execute!(stdout(), cursor::MoveLeft(1))
-    }
-
-    pub fn move_cursor(direction: Direction) -> std::io::Result<()> {
-        match direction {
-            Direction::Down => Self::cursor_move_down(),
-            Direction::Up => Self::cursor_move_up(),
-            Direction::Left => Self::cursor_move_left(),
-            Direction::Right => Self::cursor_move_right(),
-        }
+    pub fn write_string_to(stdout: &mut Stdout, col: u16, row: u16, content: &str) {
+        execute!(stdout, cursor::MoveTo(col, row), style::Print(content)).unwrap();
     }
 }

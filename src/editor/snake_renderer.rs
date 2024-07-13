@@ -1,48 +1,92 @@
 use std::{
+    collections::LinkedList,
     io::stdout,
     sync::{Arc, Mutex},
     thread,
     time::Duration,
 };
 
-use crossterm::{cursor, execute, queue, style};
+use crossterm::{execute, queue, style};
 
-pub fn render_default_snake(should_quit: Arc<Mutex<bool>>) {
-    let snake_size: u16 = 4;
-    let mut snake_column_end: u16 = 0;
-    let mut snake_column_start: u16 = 0;
-    let mut snake_row_end: u16 = 0;
-    let mut snake_row_start: u16 = 0;
+use super::terminal::{Direction, Terminal};
+
+#[derive(Debug)]
+struct SnakePartPosition {
+    pub row: u16,
+    pub column: u16,
+}
+
+#[derive(Debug)]
+struct Snake {
+    pub current_direction: Direction,
+    pub parts: LinkedList<SnakePartPosition>,
+}
+
+const SNAKE_INITIAL_SIZE: u16 = 4;
+
+fn get_default_snake(direction: &Arc<Mutex<Direction>>) -> Snake {
+    let direction_lock = direction.lock().unwrap();
+
+    let mut snake = Snake {
+        current_direction: *direction_lock,
+        parts: LinkedList::new(),
+    };
+
+    for i in 0..SNAKE_INITIAL_SIZE {
+        snake
+            .parts
+            .push_back(SnakePartPosition { column: i, row: 0 })
+    }
+
+    snake
+}
+
+pub fn render_default_snake(should_quit: Arc<Mutex<bool>>, direction: Arc<Mutex<Direction>>) {
+    let mut snake = get_default_snake(&direction);
+
+    let mut stdout = stdout();
+    for _ in &snake.parts {
+        queue!(stdout, style::Print("X")).unwrap();
+    }
 
     loop {
-        thread::sleep(Duration::from_millis(500));
+        thread::sleep(Duration::from_millis(200));
 
         if *should_quit.lock().unwrap() {
             return;
         }
 
-        let mut stdout = stdout();
+        let front = snake.parts.pop_front().unwrap();
+        let back = snake.parts.back().unwrap();
+
         execute!(stdout, crossterm::terminal::BeginSynchronizedUpdate).unwrap();
-        if snake_column_start > 0 {
-            queue!(
-                stdout,
-                cursor::MoveTo(snake_column_start, snake_row_start),
-                style::Print(" "),
-                cursor::MoveTo(snake_column_end + 1, snake_row_end),
-                style::Print("X")
-            )
-            .unwrap();
 
-            snake_column_end += 1;
-            snake_column_start += 1;
-        } else {
-            for n in 0..snake_size {
-                queue!(stdout, style::Print("X")).unwrap();
-            }
+        Terminal::write_string_to(&mut stdout, front.column, front.row, " ");
 
-            snake_column_end += snake_size;
-            snake_column_start += 1;
-        }
+        let direction_lock = *direction.lock().unwrap();
+        snake.current_direction = direction_lock;
+
+        let new_position = match direction_lock {
+            Direction::Right => SnakePartPosition {
+                column: back.column.saturating_add(1),
+                row: back.row,
+            },
+            Direction::Down => SnakePartPosition {
+                column: back.column,
+                row: back.row.saturating_add(1),
+            },
+            Direction::Left => SnakePartPosition {
+                column: back.column.saturating_sub(1),
+                row: back.row,
+            },
+            Direction::Up => SnakePartPosition {
+                column: back.column,
+                row: back.row.saturating_sub(1),
+            },
+        };
+
+        Terminal::write_string_to(&mut stdout, new_position.column, new_position.row, "X");
+        snake.parts.push_back(new_position);
 
         execute!(stdout, crossterm::terminal::EndSynchronizedUpdate).unwrap();
     }

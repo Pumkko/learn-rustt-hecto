@@ -34,7 +34,7 @@ impl Editor {
         let direction = self.direction.clone();
         let should_quit = self.should_quit.clone();
         let handle = thread::spawn(move || {
-            render_default_snake(should_quit);
+            render_default_snake(should_quit, direction);
         });
 
         self.repl()?;
@@ -48,7 +48,6 @@ impl Editor {
         loop {
             let event = read()?;
             self.evaluate_event(&event)?;
-            self.refresh_screen()?;
             if *self.should_quit.clone().lock().unwrap() {
                 break;
             }
@@ -56,32 +55,11 @@ impl Editor {
         Ok(())
     }
 
-    fn move_cursor(&self, direction: Direction) -> std::io::Result<()> {
+    fn move_cursor(&self, direction: Direction) {
         let direction_clone = self.direction.clone();
         let mut direction_lock = direction_clone.lock().unwrap();
 
-        if *direction_lock == direction {
-            Ok(())
-        } else {
-            match direction {
-                Direction::Up => {
-                    *direction_lock = Direction::Up;
-                    Terminal::cursor_move_up()
-                }
-                Direction::Down => {
-                    *direction_lock = Direction::Down;
-                    Terminal::cursor_move_down()
-                }
-                Direction::Left => {
-                    *direction_lock = Direction::Left;
-                    Terminal::cursor_move_left()
-                }
-                Direction::Right => {
-                    *direction_lock = Direction::Right;
-                    Terminal::cursor_move_right()
-                }
-            }
-        }
+        *direction_lock = direction;
     }
 
     fn evaluate_event(&mut self, event: &Event) -> std::io::Result<()> {
@@ -95,19 +73,12 @@ impl Editor {
                 }
                 KeyCode::Up | KeyCode::Left | KeyCode::Down | KeyCode::Right => {
                     let direction: Direction = code.into();
-                    self.move_cursor(direction).unwrap();
+                    self.move_cursor(direction);
                 }
                 _ => (),
             }
         }
 
-        Ok(())
-    }
-    fn refresh_screen(&self) -> Result<(), std::io::Error> {
-        if *self.should_quit.clone().lock().unwrap() {
-            Terminal::clear_screen()?;
-            print!("Goodbye.\r\n");
-        }
         Ok(())
     }
 }
