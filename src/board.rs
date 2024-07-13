@@ -10,7 +10,7 @@ use crossterm::event::{
     KeyEvent, KeyModifiers,
 };
 use snake_renderer::render_default_snake;
-use terminal::{Direction, Terminal};
+use terminal::Terminal;
 
 mod snake_renderer;
 mod terminal;
@@ -18,6 +18,26 @@ mod terminal;
 pub struct Editor {
     should_quit: Arc<Mutex<bool>>,
     direction: Arc<Mutex<Direction>>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Direction {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
+impl From<&KeyCode> for Direction {
+    fn from(value: &KeyCode) -> Self {
+        match value {
+            KeyCode::Up => Direction::Up,
+            KeyCode::Down => Direction::Down,
+            KeyCode::Left => Direction::Left,
+            KeyCode::Right => Direction::Right,
+            _ => panic!("Can only map from up, left, down, right keycode"),
+        }
+    }
 }
 
 impl Editor {
@@ -47,7 +67,7 @@ impl Editor {
     fn repl(&mut self) -> Result<(), std::io::Error> {
         loop {
             let event = read()?;
-            self.evaluate_event(&event)?;
+            self.evaluate_event(&event);
             if *self.should_quit.clone().lock().unwrap() {
                 break;
             }
@@ -62,7 +82,7 @@ impl Editor {
         *direction_lock = direction;
     }
 
-    fn evaluate_event(&mut self, event: &Event) -> std::io::Result<()> {
+    fn evaluate_event(&mut self, event: &Event) {
         if let Key(KeyEvent {
             code, modifiers, ..
         }) = event
@@ -78,7 +98,5 @@ impl Editor {
                 _ => (),
             }
         }
-
-        Ok(())
     }
 }

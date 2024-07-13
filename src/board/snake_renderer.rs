@@ -1,5 +1,5 @@
 use std::{
-    collections::LinkedList,
+    collections::VecDeque,
     io::stdout,
     sync::{Arc, Mutex},
     thread,
@@ -8,7 +8,7 @@ use std::{
 
 use crossterm::{execute, queue, style};
 
-use super::terminal::{Direction, Terminal};
+use super::{terminal::Terminal, Direction};
 
 #[derive(Debug)]
 struct SnakePartPosition {
@@ -19,7 +19,7 @@ struct SnakePartPosition {
 #[derive(Debug)]
 struct Snake {
     pub current_direction: Direction,
-    pub parts: LinkedList<SnakePartPosition>,
+    pub parts: VecDeque<SnakePartPosition>,
 }
 
 const SNAKE_INITIAL_SIZE: u16 = 4;
@@ -29,13 +29,13 @@ fn get_default_snake(direction: &Arc<Mutex<Direction>>) -> Snake {
 
     let mut snake = Snake {
         current_direction: *direction_lock,
-        parts: LinkedList::new(),
+        parts: VecDeque::new(),
     };
 
     for i in 0..SNAKE_INITIAL_SIZE {
         snake
             .parts
-            .push_back(SnakePartPosition { column: i, row: 0 })
+            .push_back(SnakePartPosition { column: i, row: 0 });
     }
 
     snake
