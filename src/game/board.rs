@@ -82,8 +82,8 @@ impl Board {
             boundaries: BoardBoundaries {
                 starting_col: 0,
                 starting_row: 0,
-                col_size: 80,
-                row_size: 15,
+                col_size: 40,
+                row_size: 10,
             },
         }
     }

@@ -20,3 +20,9 @@ pub fn is_snake_outside_boundaries(snake: &Snake, boundaries: BoardBoundaries) -
         || snake_head.row <= boundaries.starting_row
         || snake_head.row >= ending_row
 }
+
+pub fn is_snake_eating_food(snake: &Snake, food_col: u16, food_row: u16) -> bool {
+    let snake_head = snake.parts.back().expect("Snake has no head !");
+
+    snake_head.column == food_col && snake_head.row == food_row
+}

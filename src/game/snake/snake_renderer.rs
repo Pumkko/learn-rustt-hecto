@@ -13,7 +13,7 @@ use crossterm::{cursor, execute, queue, style};
 use rand::distributions::{Distribution, Uniform};
 
 use super::{
-    boundaries_check::{is_snake_biting_itself, is_snake_outside_boundaries},
+    boundaries_check::{is_snake_biting_itself, is_snake_eating_food, is_snake_outside_boundaries},
     direction::Direction,
     snake_structs::{Snake, SnakePartPosition},
 };
@@ -121,14 +121,14 @@ pub fn render_snake(
         Uniform::from((board_boundaries.starting_row + 1)..board_boundaries.ending_row());
     let mut rng = rand::thread_rng();
 
-    let col = between_col.sample(&mut rng);
-    let row = between_row.sample(&mut rng);
+    let mut food_col = between_col.sample(&mut rng);
+    let mut food_row = between_row.sample(&mut rng);
 
-    draw_random_food(col, row);
+    draw_random_food(food_col, food_row);
 
     render_default_snake(&snake);
     loop {
-        thread::sleep(Duration::from_millis(200));
+        thread::sleep(Duration::from_millis(100));
 
         if *arc_should_quit.lock().unwrap() {
             return GameStatus::Quit;
@@ -136,6 +136,39 @@ pub fn render_snake(
         move_snake_towards_direction(arc_direction, &mut snake);
         if is_snake_biting_itself(&snake) || is_snake_outside_boundaries(&snake, board_boundaries) {
             return GameStatus::Lost;
+        }
+        if is_snake_eating_food(&snake, food_col, food_row) {
+            let snake_tail = snake.parts.front();
+
+            if let Some(tail_position) = snake_tail {
+                let new_tail = match snake.current_direction {
+                    Direction::Down => SnakePartPosition {
+                        column: tail_position.column,
+                        row: tail_position.row.saturating_sub(1),
+                    },
+                    Direction::Up => SnakePartPosition {
+                        column: tail_position.column,
+                        row: tail_position.row.saturating_add(1),
+                    },
+                    Direction::Left => SnakePartPosition {
+                        column: tail_position.column.saturating_add(1),
+                        row: tail_position.row,
+                    },
+                    Direction::Right => SnakePartPosition {
+                        column: tail_position.column.saturating_sub(1),
+                        row: tail_position.row,
+                    },
+                };
+                let mut stdout = stdout();
+                Terminal::write_string_to(&mut stdout, new_tail.column, new_tail.row, "X");
+                snake.parts.push_front(new_tail);
+
+                food_col = between_col.sample(&mut rng);
+                food_row = between_row.sample(&mut rng);
+                draw_random_food(food_col, food_row);
+            } else {
+                panic!("Snake has no tail !");
+            }
         }
     }
 }
