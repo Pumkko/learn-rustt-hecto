@@ -10,6 +10,7 @@ use crate::game::{
     terminal::Terminal,
 };
 use crossterm::{cursor, execute, queue, style};
+use rand::distributions::{Distribution, Uniform};
 
 use super::{
     boundaries_check::{is_snake_biting_itself, is_snake_outside_boundaries},
@@ -91,6 +92,11 @@ fn render_default_snake(snake: &Snake) {
     }
 }
 
+fn draw_random_food(col: u16, row: u16) {
+    let mut stdout = stdout();
+    Terminal::write_string_to(&mut stdout, col, row, "*");
+}
+
 pub fn render_snake(
     board_boundaries: BoardBoundaries,
     arc_should_quit: &Arc<Mutex<bool>>,
@@ -108,6 +114,17 @@ pub fn render_snake(
         board_boundaries.starting_row + 1,
         SNAKE_INITIAL_SIZE,
     );
+
+    let between_col =
+        Uniform::from((board_boundaries.starting_col + 1)..board_boundaries.ending_col());
+    let between_row =
+        Uniform::from((board_boundaries.starting_row + 1)..board_boundaries.ending_row());
+    let mut rng = rand::thread_rng();
+
+    let col = between_col.sample(&mut rng);
+    let row = between_row.sample(&mut rng);
+
+    draw_random_food(col, row);
 
     render_default_snake(&snake);
     loop {

@@ -19,7 +19,23 @@ use super::{
 pub struct BoardBoundaries {
     pub starting_col: u16,
     pub starting_row: u16,
+
+    /**
+     * Define the size of the Y axis of the boundaries
+     * it will be excluded so for exemple a
+     * starting_col: 0
+     * col_size: 5
+     * means (peusdo code) boundaries[col: 5, row: 0] would be outside the limit i.e it would hit the rectangle's border
+     */
     pub col_size: u16,
+
+    /**
+     * Define the size of the X axis of the boundaries
+     * it will be excluded so for exemple a
+     * starting_row: 0
+     * row_size: 5
+     * means boundaries[col: 0, row: 5] would be outside the limit i.e it would hit the rectangle's border
+     */
     pub row_size: u16,
 }
 
@@ -66,7 +82,7 @@ impl Board {
             boundaries: BoardBoundaries {
                 starting_col: 0,
                 starting_row: 0,
-                col_size: 120,
+                col_size: 80,
                 row_size: 15,
             },
         }
