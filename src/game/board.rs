@@ -10,7 +10,10 @@ use crossterm::event::{
     KeyEvent, KeyModifiers,
 };
 
-use super::{snake::Direction, snake_renderer::render_snake, terminal::Terminal};
+use super::{
+    snake::{direction::Direction, render_snake},
+    terminal::Terminal,
+};
 
 pub struct Board {
     should_quit: Arc<Mutex<bool>>,
