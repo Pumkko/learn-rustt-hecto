@@ -1,15 +1,23 @@
 use std::{
     io::stdout,
     sync::{Arc, Mutex},
+    thread,
+    time::Duration,
 };
 
-use crate::game::terminal::Terminal;
-use crossterm::{execute, style};
+use crate::game::{
+    board::{BoardBoundaries, GameStatus},
+    terminal::Terminal,
+};
+use crossterm::{cursor, execute, queue, style};
 
 use super::{
+    boundaries_check::{is_snake_biting_itself, is_snake_outside_boundaries},
     direction::Direction,
     snake_structs::{Snake, SnakePartPosition},
 };
+
+const SNAKE_INITIAL_SIZE: u16 = 4;
 
 fn get_snake_next_end_position(
     snake_end_position: &SnakePartPosition,
@@ -49,7 +57,7 @@ fn update_snake_direction_with_new_direction(
     }
 }
 
-pub fn move_snake_towards_direction(arc_direction: &Arc<Mutex<Direction>>, snake: &mut Snake) {
+fn move_snake_towards_direction(arc_direction: &Arc<Mutex<Direction>>, snake: &mut Snake) {
     update_snake_direction_with_new_direction(arc_direction, snake);
 
     let snake_tail_position = snake.parts.pop_front().unwrap();
@@ -75,9 +83,42 @@ pub fn move_snake_towards_direction(arc_direction: &Arc<Mutex<Direction>>, snake
     snake.parts.push_back(snake_new_end_position);
 }
 
-pub fn render_default_snake(snake: &Snake) {
+fn render_default_snake(snake: &Snake) {
     let mut stdout = stdout();
+    queue!(stdout, cursor::MoveTo(1, 1)).unwrap();
     for _ in &snake.parts {
         execute!(stdout, style::Print("X")).unwrap();
+    }
+}
+
+pub fn render_snake(
+    board_boundaries: BoardBoundaries,
+    arc_should_quit: &Arc<Mutex<bool>>,
+    arc_direction: &Arc<Mutex<Direction>>,
+) -> GameStatus {
+    // From what i understand the following line does that :
+    // direction.lock().unwrap() returns a MutexGuard<Direction>
+    // But then we immediately dereference it by calling *
+    // because Direction implements copy and clone, a copy of the locked direction is made and the lock is released
+    let direction = *arc_direction.lock().unwrap();
+
+    let mut snake = Snake::new(
+        direction,
+        board_boundaries.starting_col + 1,
+        board_boundaries.starting_row + 1,
+        SNAKE_INITIAL_SIZE,
+    );
+
+    render_default_snake(&snake);
+    loop {
+        thread::sleep(Duration::from_millis(200));
+
+        if *arc_should_quit.lock().unwrap() {
+            return GameStatus::Quit;
+        }
+        move_snake_towards_direction(arc_direction, &mut snake);
+        if is_snake_biting_itself(&snake) || is_snake_outside_boundaries(&snake, board_boundaries) {
+            return GameStatus::Lost;
+        }
     }
 }

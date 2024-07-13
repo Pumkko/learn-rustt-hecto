@@ -15,16 +15,22 @@ pub struct Snake {
 }
 
 impl Snake {
-    pub fn new(direction: Direction, size: u16) -> Self {
+    pub fn new(
+        direction: Direction,
+        snake_starting_col: u16,
+        snake_starting_row: u16,
+        size: u16,
+    ) -> Self {
         let mut snake = Snake {
             current_direction: direction,
             parts: VecDeque::new(),
         };
 
-        for i in 0..size {
-            snake
-                .parts
-                .push_back(SnakePartPosition { column: i, row: 0 });
+        for i in snake_starting_col..(size + snake_starting_col) {
+            snake.parts.push_back(SnakePartPosition {
+                column: i,
+                row: snake_starting_row,
+            });
         }
 
         snake

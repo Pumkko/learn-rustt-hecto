@@ -10,6 +10,6 @@ I do think i understand a bit better when and why moving and borrowing happen
 - [ ] Error handling
 
 # Todo (game)
-- [ ] Detect collisions, either the snake hits itself or the boundaries of the board
+- [X] Detect collisions, either the snake hits itself or the boundaries of the board
 - [ ] Add food generation, draw a food character randomly on the board when required
 - [ ] Implement eat logic (ie when the snake hits a food character)

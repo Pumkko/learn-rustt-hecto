@@ -11,13 +11,32 @@ use crossterm::event::{
 };
 
 use super::{
-    snake::{direction::Direction, render_snake},
+    snake::{direction::Direction, snake_renderer::render_snake},
     terminal::Terminal,
 };
+
+#[derive(Copy, Clone, Debug)]
+pub struct BoardBoundaries {
+    pub starting_col: u16,
+    pub starting_row: u16,
+    pub col_size: u16,
+    pub row_size: u16,
+}
+
+impl BoardBoundaries {
+    pub fn ending_col(&self) -> u16 {
+        self.starting_col.saturating_add(self.col_size)
+    }
+
+    pub fn ending_row(&self) -> u16 {
+        self.starting_row.saturating_add(self.row_size)
+    }
+}
 
 pub struct Board {
     should_quit: Arc<Mutex<bool>>,
     direction: Arc<Mutex<Direction>>,
+    boundaries: BoardBoundaries,
     snake_renderer_handle: Option<JoinHandle<()>>,
 }
 
@@ -44,12 +63,17 @@ impl Board {
             should_quit: Arc::new(Mutex::new(false)),
             direction: Arc::new(Mutex::new(Direction::Right)),
             snake_renderer_handle: None,
+            boundaries: BoardBoundaries {
+                starting_col: 0,
+                starting_row: 0,
+                col_size: 120,
+                row_size: 15,
+            },
         }
     }
 
     pub fn run(&mut self) -> std::io::Result<()> {
         Terminal::initialize()?;
-
         self.start_new_game();
         self.repl()?;
 
@@ -59,14 +83,23 @@ impl Board {
     }
 
     fn start_new_game(&mut self) {
+        Terminal::draw_rectangle(
+            self.boundaries.starting_col,
+            self.boundaries.starting_row,
+            self.boundaries.col_size,
+            self.boundaries.row_size,
+        )
+        .unwrap();
+
         let mut direction_lock = self.direction.lock().unwrap();
         *direction_lock = Direction::Right;
         std::mem::drop(direction_lock);
 
         let snake_direction = self.direction.clone();
         let should_quit = self.should_quit.clone();
+        let boundaries = self.boundaries;
         let handle = thread::spawn(move || {
-            let result = render_snake(&should_quit, &snake_direction);
+            let result = render_snake(boundaries, &should_quit, &snake_direction);
 
             if let GameStatus::Lost = result {
                 Terminal::print_you_lost().unwrap();
