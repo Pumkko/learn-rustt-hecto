@@ -1,9 +1,10 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-mod board;
-use board::Editor;
+use game::board::Board;
+
+mod game;
 
 fn main() -> std::io::Result<()> {
-    let mut editor = Editor::default();
+    let mut editor = Board::default();
     editor.run()
 }
