@@ -6,7 +6,7 @@ Difficult to say right now what I learnt, things kinda become clearer but not so
 I do think i understand a bit better when and why moving and borrowing happen
 
 # Todo (Technical)
-- [ ] Make a proper "engine" instead of splitting crossterm calls everywhere
+- [X] Move all terminal handling logic to the terminal module
 - [ ] Error handling
 
 # Todo (game)
