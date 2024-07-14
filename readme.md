@@ -16,3 +16,4 @@ I do think i understand a bit better when and why moving and borrowing happen
 
 # Bug fix
 - [ ] The food generation code sometimes generate food where the snake is
+- [ ] The food generation code sometimes generate food too close to the border making the game a bit too hard
