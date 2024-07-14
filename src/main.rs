@@ -1,4 +1,5 @@
 #![warn(clippy::all, clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
 
 use game::board::Board;
 mod game;

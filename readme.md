@@ -8,6 +8,7 @@ I do think i understand a bit better when and why moving and borrowing happen
 # Todo (Technical)
 - [X] Move all terminal handling logic to the terminal module
 - [ ] Error handling
+- [ ] See if locking `should_quit` every render is the best way to gracefully stop the render loop
 
 # Todo (game)
 - [X] Detect collisions, either the snake hits itself or the boundaries of the board
@@ -18,4 +19,4 @@ I do think i understand a bit better when and why moving and borrowing happen
 
 # Bug fix
 - [ ] The food generation code sometimes generate food where the snake is
-- [ ] The food generation code sometimes generate food too close to the border making the game a bit too hard
+- [X] The food generation code sometimes generate food too close to the border making the game a bit too hard
