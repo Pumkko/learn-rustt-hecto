@@ -23,8 +23,8 @@ pub struct BoardBoundaries {
     /**
      * Define the size of the Y axis of the boundaries
      * it will be excluded so for exemple a
-     * starting_col: 0
-     * col_size: 5
+     * `starting_col: 0`
+     * `col_size: 5`
      * means (peusdo code) boundaries[col: 5, row: 0] would be outside the limit i.e it would hit the rectangle's border
      */
     pub col_size: u16,
@@ -32,26 +32,26 @@ pub struct BoardBoundaries {
     /**
      * Define the size of the X axis of the boundaries
      * it will be excluded so for exemple a
-     * starting_row: 0
-     * row_size: 5
+     * `starting_row: 0`
+     * `row_size: 5`
      * means boundaries[col: 0, row: 5] would be outside the limit i.e it would hit the rectangle's border
      */
     pub row_size: u16,
 }
 
 impl BoardBoundaries {
-    pub fn ending_col(&self) -> u16 {
+    pub fn ending_col(self) -> u16 {
         self.starting_col.saturating_add(self.col_size)
     }
 
-    pub fn ending_row(&self) -> u16 {
+    pub fn ending_row(self) -> u16 {
         self.starting_row.saturating_add(self.row_size)
     }
 }
 
 pub struct Board {
-    should_quit: Arc<Mutex<bool>>,
-    direction: Arc<Mutex<Direction>>,
+    arc_should_quit: Arc<Mutex<bool>>,
+    arc_snake_direction: Arc<Mutex<Direction>>,
     boundaries: BoardBoundaries,
     snake_renderer_handle: Option<JoinHandle<()>>,
 }
@@ -76,8 +76,8 @@ impl From<&KeyCode> for Direction {
 impl Board {
     pub fn default() -> Self {
         Board {
-            should_quit: Arc::new(Mutex::new(false)),
-            direction: Arc::new(Mutex::new(Direction::Right)),
+            arc_should_quit: Arc::new(Mutex::new(false)),
+            arc_snake_direction: Arc::new(Mutex::new(Direction::Right)),
             snake_renderer_handle: None,
             boundaries: BoardBoundaries {
                 starting_col: 0,
@@ -107,18 +107,18 @@ impl Board {
         )
         .unwrap();
 
-        let mut direction_lock = self.direction.lock().unwrap();
+        let mut direction_lock = self.arc_snake_direction.lock().unwrap();
         *direction_lock = Direction::Right;
         std::mem::drop(direction_lock);
 
-        let snake_direction = self.direction.clone();
-        let should_quit = self.should_quit.clone();
+        let snake_direction = self.arc_snake_direction.clone();
+        let should_quit = self.arc_should_quit.clone();
         let boundaries = self.boundaries;
         let handle = thread::spawn(move || {
             let result = render_snake(boundaries, &should_quit, &snake_direction);
 
             if let GameStatus::Lost = result {
-                Terminal::print_you_lost().unwrap();
+                Terminal::clear_and_write_string_to(0, 0, "YOU LOST").unwrap();
             }
         });
 
@@ -129,7 +129,7 @@ impl Board {
         loop {
             let event = read()?;
             self.evaluate_event(&event);
-            if *self.should_quit.clone().lock().unwrap() {
+            if *self.arc_should_quit.clone().lock().unwrap() {
                 break;
             }
         }
@@ -137,7 +137,7 @@ impl Board {
     }
 
     fn move_cursor(&self, direction: Direction) {
-        let direction_clone = self.direction.clone();
+        let direction_clone = self.arc_snake_direction.clone();
         let mut direction_lock = direction_clone.lock().unwrap();
 
         *direction_lock = direction;
@@ -160,7 +160,7 @@ impl Board {
         {
             match code {
                 Char('q') if *modifiers == KeyModifiers::CONTROL => {
-                    *self.should_quit.clone().lock().unwrap() = true;
+                    *self.arc_should_quit.clone().lock().unwrap() = true;
                 }
                 Char('a') if *modifiers == KeyModifiers::CONTROL => {
                     self.join_snake_renderer();

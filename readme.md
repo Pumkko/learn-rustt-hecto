@@ -13,3 +13,6 @@ I do think i understand a bit better when and why moving and borrowing happen
 - [X] Detect collisions, either the snake hits itself or the boundaries of the board
 - [X] Add food generation, draw a food character randomly on the board when required
 - [X] Implement eat logic (ie when the snake hits a food character)
+
+# Bug fix
+- [ ] The food generation code sometimes generate food where the snake is

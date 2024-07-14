@@ -1,4 +1,4 @@
-use std::io::{stdout, Stdout};
+use std::io::stdout;
 
 use crossterm::{
     cursor::{self},
@@ -13,10 +13,8 @@ impl Terminal {
     pub fn initialize() -> Result<(), std::io::Error> {
         enable_raw_mode()?;
 
-        let mut stdout = stdout();
-
         execute!(
-            stdout,
+            stdout(),
             cursor::MoveTo(0, 0),
             Clear(ClearType::All),
             cursor::Hide
@@ -29,9 +27,9 @@ impl Terminal {
             stdout,
             cursor::MoveTo(0, 0),
             Clear(ClearType::All),
-            style::Print("Goodbye\r\n")
+            style::Print("Goodbye\r\n"),
+            cursor::Show
         )?;
-        execute!(stdout, cursor::Show)?;
         disable_raw_mode()
     }
 
@@ -45,13 +43,14 @@ impl Terminal {
 
         let (terminal_col_size, terminal_row_size) = crossterm::terminal::size()?;
 
-        if terminal_col_size < col_size {
-            panic!("terminal col size is too big");
-        }
-
-        if terminal_row_size < row_size {
-            panic!("terminal row size is too big");
-        }
+        assert!(
+            terminal_col_size >= row_size,
+            "terminal col size is too big"
+        );
+        assert!(
+            terminal_row_size >= row_size,
+            "terminal row size is too big"
+        );
 
         let ending_col = starting_col.saturating_add(col_size);
         let ending_row = starting_row.saturating_add(row_size);
@@ -79,18 +78,16 @@ impl Terminal {
         Ok(())
     }
 
-    pub fn print_you_lost() -> std::io::Result<()> {
-        let mut stdout = stdout();
-
+    pub fn clear_and_write_string_to(col: u16, row: u16, content: &str) -> std::io::Result<()> {
         execute!(
-            stdout,
-            cursor::MoveTo(0, 0),
+            stdout(),
             Clear(ClearType::All),
-            style::Print("YOU LOST")
+            cursor::MoveTo(col, row),
+            style::Print(content)
         )
     }
 
-    pub fn write_string_to(stdout: &mut Stdout, col: u16, row: u16, content: &str) {
-        execute!(stdout, cursor::MoveTo(col, row), style::Print(content)).unwrap();
+    pub fn write_string_to(col: u16, row: u16, content: &str) -> std::io::Result<()> {
+        execute!(stdout(), cursor::MoveTo(col, row), style::Print(content))
     }
 }

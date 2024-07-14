@@ -1,5 +1,4 @@
 use std::{
-    io::stdout,
     sync::{Arc, Mutex},
     thread,
     time::Duration,
@@ -9,7 +8,6 @@ use crate::game::{
     board::{BoardBoundaries, GameStatus},
     terminal::Terminal,
 };
-use crossterm::{cursor, execute, queue, style};
 use rand::distributions::{Distribution, Uniform};
 
 use super::{
@@ -64,37 +62,30 @@ fn move_snake_towards_direction(arc_direction: &Arc<Mutex<Direction>>, snake: &m
     let snake_tail_position = snake.parts.pop_front().unwrap();
     let snake_head_position = snake.parts.back().unwrap();
 
-    let mut stdout = stdout();
-    Terminal::write_string_to(
-        &mut stdout,
-        snake_tail_position.column,
-        snake_tail_position.row,
-        " ",
-    );
+    Terminal::write_string_to(snake_tail_position.column, snake_tail_position.row, " ").unwrap();
 
     let snake_new_end_position =
         get_snake_next_end_position(snake_head_position, snake.current_direction);
 
     Terminal::write_string_to(
-        &mut stdout,
         snake_new_end_position.column,
         snake_new_end_position.row,
         "X",
-    );
+    )
+    .unwrap();
     snake.parts.push_back(snake_new_end_position);
 }
 
 fn render_default_snake(snake: &Snake) {
-    let mut stdout = stdout();
-    queue!(stdout, cursor::MoveTo(1, 1)).unwrap();
-    for _ in &snake.parts {
-        execute!(stdout, style::Print("X")).unwrap();
+    if let Some(t) = snake.parts.front() {
+        let snake_len = snake.parts.len();
+        let snake_str = "X".repeat(snake_len);
+        Terminal::write_string_to(t.column, t.row, &snake_str).unwrap();
     }
 }
 
 fn draw_random_food(col: u16, row: u16) {
-    let mut stdout = stdout();
-    Terminal::write_string_to(&mut stdout, col, row, "*");
+    Terminal::write_string_to(col, row, "*").unwrap();
 }
 
 pub fn render_snake(
@@ -159,8 +150,8 @@ pub fn render_snake(
                         row: tail_position.row,
                     },
                 };
-                let mut stdout = stdout();
-                Terminal::write_string_to(&mut stdout, new_tail.column, new_tail.row, "X");
+
+                Terminal::write_string_to(new_tail.column, new_tail.row, "X").unwrap();
                 snake.parts.push_front(new_tail);
 
                 food_col = between_col.sample(&mut rng);
