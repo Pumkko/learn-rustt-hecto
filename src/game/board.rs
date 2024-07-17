@@ -11,7 +11,7 @@ use crossterm::event::{
 };
 
 use super::{
-    snake::{direction::Direction, snake_renderer::render_snake},
+    snake::{direction::Direction, snake_renderer::render_snake, snake_structs::Snake},
     terminal::Terminal,
 };
 
@@ -46,6 +46,27 @@ impl BoardBoundaries {
 
     pub fn ending_row(self) -> u16 {
         self.starting_row.saturating_add(self.row_size)
+    }
+
+    pub fn is_snake_outside_boundaries(self, snake: &Snake) -> bool {
+        let snake_head = snake.parts.back().expect("Snake has no head !");
+
+        let ending_col = self.ending_col();
+        let ending_row = self.ending_row();
+
+        snake_head.column <= self.starting_col
+            || snake_head.column >= ending_col
+            || snake_head.row <= self.starting_row
+            || snake_head.row >= ending_row
+    }
+    pub fn is_point_within_boundaries(self, column: u16, row: u16) -> bool {
+        let ending_col = self.ending_col();
+        let ending_row = self.ending_row();
+
+        column > self.starting_col
+            && column < ending_col
+            && row > self.starting_row
+            && row < ending_row
     }
 }
 

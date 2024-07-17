@@ -18,5 +18,6 @@ I do think i understand a bit better when and why moving and borrowing happen
 - [ ] Display Score
 
 # Bug fix
-- [ ] The food generation code sometimes generate food where the snake is
+- [X] The food generation code sometimes generate food where the snake is
 - [X] The food generation code sometimes generate food too close to the border making the game a bit too hard
+- [X] The snake_renderer system can hide a food if it appears right behind the snake

@@ -10,7 +10,7 @@ use crate::game::{
 };
 
 use super::{
-    boundaries_check::{is_snake_biting_itself, is_snake_eating_food, is_snake_outside_boundaries},
+    boundaries_check::{is_snake_biting_itself, is_snake_eating_food},
     direction::Direction,
     food_generator::FoodGenerator,
     snake_structs::{Snake, SnakePartPosition},
@@ -56,13 +56,21 @@ fn update_snake_direction_with_new_direction(
     }
 }
 
-fn move_snake_towards_direction(arc_direction: &Arc<Mutex<Direction>>, snake: &mut Snake) {
+fn move_snake_towards_direction(
+    arc_direction: &Arc<Mutex<Direction>>,
+    snake: &mut Snake,
+    food_column: u16,
+    food_row: u16,
+) {
     update_snake_direction_with_new_direction(arc_direction, snake);
 
     let snake_tail_position = snake.parts.pop_front().unwrap();
     let snake_head_position = snake.parts.back().unwrap();
 
-    Terminal::write_string_to(snake_tail_position.column, snake_tail_position.row, " ").unwrap();
+    if snake_tail_position.column != food_column || snake_tail_position.row != food_row {
+        Terminal::write_string_to(snake_tail_position.column, snake_tail_position.row, " ")
+            .unwrap();
+    }
 
     let snake_new_end_position =
         get_snake_next_end_position(snake_head_position, snake.current_direction);
@@ -132,17 +140,17 @@ pub fn render_snake(
     render_default_snake(&snake);
 
     let mut food_generator = FoodGenerator::new(board_boundaries);
-    let (mut food_col, mut food_row) = food_generator.draw_random_food();
+    let (mut food_col, mut food_row) = food_generator.draw_random_food(&snake);
 
     loop {
         thread::sleep(Duration::from_millis(100));
-        move_snake_towards_direction(arc_direction, &mut snake);
+        move_snake_towards_direction(arc_direction, &mut snake, food_col, food_row);
 
-        if is_snake_biting_itself(&snake) || is_snake_outside_boundaries(&snake, board_boundaries) {
+        if is_snake_biting_itself(&snake) || board_boundaries.is_snake_outside_boundaries(&snake) {
             return GameStatus::Lost;
         } else if is_snake_eating_food(&snake, food_col, food_row) {
             grow_snake(&mut snake);
-            (food_col, food_row) = food_generator.draw_random_food();
+            (food_col, food_row) = food_generator.draw_random_food(&snake);
         } else if *arc_should_quit.lock().unwrap() {
             return GameStatus::Quit;
         }
