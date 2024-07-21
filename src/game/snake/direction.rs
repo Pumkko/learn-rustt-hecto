@@ -1,9 +1,10 @@
 /**
  * The direction towards which the snake is moving
  */
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub enum Direction {
     Left,
+    #[default]
     Right,
     Up,
     Down,

@@ -98,7 +98,7 @@ impl Board {
     pub fn default() -> Self {
         Board {
             arc_should_quit: Arc::new(Mutex::new(false)),
-            arc_snake_direction: Arc::new(Mutex::new(Direction::Right)),
+            arc_snake_direction: Arc::new(Mutex::new(Direction::default())),
             snake_renderer_handle: None,
             boundaries: BoardBoundaries {
                 starting_col: 0,
@@ -129,7 +129,7 @@ impl Board {
         .unwrap();
 
         let mut direction_lock = self.arc_snake_direction.lock().unwrap();
-        *direction_lock = Direction::Right;
+        *direction_lock = Direction::default();
         std::mem::drop(direction_lock);
 
         let snake_direction = self.arc_snake_direction.clone();
@@ -150,18 +150,11 @@ impl Board {
         loop {
             let event = read()?;
             self.evaluate_event(&event);
-            if *self.arc_should_quit.clone().lock().unwrap() {
+            if *self.arc_should_quit.lock().unwrap() {
                 break;
             }
         }
         Ok(())
-    }
-
-    fn move_cursor(&self, direction: Direction) {
-        let direction_clone = self.arc_snake_direction.clone();
-        let mut direction_lock = direction_clone.lock().unwrap();
-
-        *direction_lock = direction;
     }
 
     fn join_snake_renderer(&mut self) {
@@ -179,18 +172,25 @@ impl Board {
             code, modifiers, ..
         }) = event
         {
+            let is_game_finished = match &self.snake_renderer_handle {
+                None => true,
+                Some(h) => h.is_finished(),
+            };
+
             match code {
                 Char('q') if *modifiers == KeyModifiers::CONTROL => {
-                    *self.arc_should_quit.clone().lock().unwrap() = true;
+                    *self.arc_should_quit.lock().unwrap() = true;
                 }
-                Char('a') if *modifiers == KeyModifiers::CONTROL => {
+                Char('a') if *modifiers == KeyModifiers::CONTROL && is_game_finished => {
                     self.join_snake_renderer();
                     Terminal::initialize().unwrap();
                     self.start_new_game();
                 }
                 KeyCode::Up | KeyCode::Left | KeyCode::Down | KeyCode::Right => {
-                    let direction: Direction = code.into();
-                    self.move_cursor(direction);
+                    if !is_game_finished {
+                        let direction: Direction = code.into();
+                        *self.arc_snake_direction.lock().unwrap() = direction;
+                    }
                 }
                 _ => (),
             }

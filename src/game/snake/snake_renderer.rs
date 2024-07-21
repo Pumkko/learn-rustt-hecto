@@ -42,12 +42,7 @@ fn get_snake_next_end_position(
     }
 }
 
-fn update_snake_direction_with_new_direction(
-    arc_direction: &Arc<Mutex<Direction>>,
-    snake: &mut Snake,
-) {
-    let direction = *arc_direction.lock().unwrap();
-
+fn update_snake_direction_with_new_direction(direction: Direction, snake: &mut Snake) {
     let should_ignore_new_direction = direction.are_both_on_x_axis(snake.current_direction)
         || direction.are_both_on_y_axis(snake.current_direction);
 
@@ -57,7 +52,7 @@ fn update_snake_direction_with_new_direction(
 }
 
 fn move_snake_towards_direction(
-    arc_direction: &Arc<Mutex<Direction>>,
+    arc_direction: Direction,
     snake: &mut Snake,
     food_column: u16,
     food_row: u16,
@@ -144,7 +139,8 @@ pub fn render_snake(
 
     loop {
         thread::sleep(Duration::from_millis(100));
-        move_snake_towards_direction(arc_direction, &mut snake, food_col, food_row);
+        let direction = *arc_direction.lock().unwrap();
+        move_snake_towards_direction(direction, &mut snake, food_col, food_row);
 
         if is_snake_biting_itself(&snake) || board_boundaries.is_snake_outside_boundaries(&snake) {
             return GameStatus::Lost;
