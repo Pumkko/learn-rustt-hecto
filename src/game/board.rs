@@ -1,5 +1,5 @@
 use std::{
-    sync::{Arc, Mutex},
+    sync::mpsc::{self, Sender},
     thread::{self, JoinHandle},
 };
 
@@ -70,13 +70,6 @@ impl BoardBoundaries {
     }
 }
 
-pub struct Board {
-    arc_should_quit: Arc<Mutex<bool>>,
-    arc_snake_direction: Arc<Mutex<Direction>>,
-    boundaries: BoardBoundaries,
-    snake_renderer_handle: Option<JoinHandle<()>>,
-}
-
 pub enum GameStatus {
     Quit,
     Lost,
@@ -94,12 +87,23 @@ impl From<&KeyCode> for Direction {
     }
 }
 
+pub struct Board {
+    should_quit: bool,
+    direction: Direction,
+    should_quit_sender: Option<Sender<bool>>,
+    direction_sender: Option<Sender<Direction>>,
+    boundaries: BoardBoundaries,
+    snake_renderer_handle: Option<JoinHandle<()>>,
+}
+
 impl Board {
     pub fn default() -> Self {
         Board {
-            arc_should_quit: Arc::new(Mutex::new(false)),
-            arc_snake_direction: Arc::new(Mutex::new(Direction::Right)),
+            direction: Direction::default(),
+            should_quit: false,
             snake_renderer_handle: None,
+            should_quit_sender: None,
+            direction_sender: None,
             boundaries: BoardBoundaries {
                 starting_col: 0,
                 starting_row: 0,
@@ -128,15 +132,18 @@ impl Board {
         )
         .unwrap();
 
-        let mut direction_lock = self.arc_snake_direction.lock().unwrap();
-        *direction_lock = Direction::Right;
-        std::mem::drop(direction_lock);
+        let (should_quit_sender, should_quit_receiver) = mpsc::channel::<bool>();
+        let (direction_sender, direction_receiver) = mpsc::channel::<Direction>();
 
-        let snake_direction = self.arc_snake_direction.clone();
-        let should_quit = self.arc_should_quit.clone();
+        self.should_quit_sender = Some(should_quit_sender);
+        self.direction_sender = Some(direction_sender);
+
+        self.set_should_quit(false);
+        self.set_new_direction(Direction::default());
+
         let boundaries = self.boundaries;
         let handle = thread::spawn(move || {
-            let result = render_snake(boundaries, &should_quit, &snake_direction);
+            let result = render_snake(boundaries, &should_quit_receiver, &direction_receiver);
 
             if let GameStatus::Lost = result {
                 Terminal::clear_and_write_string_to(0, 0, "YOU LOST").unwrap();
@@ -150,18 +157,11 @@ impl Board {
         loop {
             let event = read()?;
             self.evaluate_event(&event);
-            if *self.arc_should_quit.clone().lock().unwrap() {
+            if self.should_quit {
                 break;
             }
         }
         Ok(())
-    }
-
-    fn move_cursor(&self, direction: Direction) {
-        let direction_clone = self.arc_snake_direction.clone();
-        let mut direction_lock = direction_clone.lock().unwrap();
-
-        *direction_lock = direction;
     }
 
     fn join_snake_renderer(&mut self) {
@@ -174,23 +174,45 @@ impl Board {
         }
     }
 
+    fn set_new_direction(&mut self, new_direction: Direction) {
+        self.direction = new_direction;
+
+        match &self.direction_sender {
+            Some(sender) => sender.send(self.direction).unwrap(),
+            None => panic!("no sender for direction !"),
+        }
+    }
+
+    fn set_should_quit(&mut self, should_quit: bool) {
+        self.should_quit = should_quit;
+        match &self.should_quit_sender {
+            Some(sender) => sender.send(self.should_quit).unwrap(),
+            None => panic!("no sender for should_quit !"),
+        }
+    }
+
     fn evaluate_event(&mut self, event: &Event) {
         if let Key(KeyEvent {
             code, modifiers, ..
         }) = event
         {
+            let is_game_finished = match &self.snake_renderer_handle {
+                None => false,
+                Some(h) => h.is_finished(),
+            };
+
             match code {
-                Char('q') if *modifiers == KeyModifiers::CONTROL => {
-                    *self.arc_should_quit.clone().lock().unwrap() = true;
-                }
-                Char('a') if *modifiers == KeyModifiers::CONTROL => {
+                Char('q') if *modifiers == KeyModifiers::CONTROL => self.set_should_quit(true),
+                Char('a') if *modifiers == KeyModifiers::CONTROL && is_game_finished => {
                     self.join_snake_renderer();
                     Terminal::initialize().unwrap();
                     self.start_new_game();
                 }
                 KeyCode::Up | KeyCode::Left | KeyCode::Down | KeyCode::Right => {
-                    let direction: Direction = code.into();
-                    self.move_cursor(direction);
+                    if !is_game_finished {
+                        let new_direction: Direction = code.into();
+                        self.set_new_direction(new_direction);
+                    }
                 }
                 _ => (),
             }

@@ -1,8 +1,4 @@
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-    time::Duration,
-};
+use std::{sync::mpsc::Receiver, thread, time::Duration};
 
 use crate::game::{
     board::{BoardBoundaries, GameStatus},
@@ -42,12 +38,7 @@ fn get_snake_next_end_position(
     }
 }
 
-fn update_snake_direction_with_new_direction(
-    arc_direction: &Arc<Mutex<Direction>>,
-    snake: &mut Snake,
-) {
-    let direction = *arc_direction.lock().unwrap();
-
+fn update_snake_direction_with_new_direction(direction: Direction, snake: &mut Snake) {
     let should_ignore_new_direction = direction.are_both_on_x_axis(snake.current_direction)
         || direction.are_both_on_y_axis(snake.current_direction);
 
@@ -57,12 +48,12 @@ fn update_snake_direction_with_new_direction(
 }
 
 fn move_snake_towards_direction(
-    arc_direction: &Arc<Mutex<Direction>>,
+    direction: Direction,
     snake: &mut Snake,
     food_column: u16,
     food_row: u16,
 ) {
-    update_snake_direction_with_new_direction(arc_direction, snake);
+    update_snake_direction_with_new_direction(direction, snake);
 
     let snake_tail_position = snake.parts.pop_front().unwrap();
     let snake_head_position = snake.parts.back().unwrap();
@@ -122,14 +113,12 @@ fn grow_snake(snake: &mut Snake) {
 
 pub fn render_snake(
     board_boundaries: BoardBoundaries,
-    arc_should_quit: &Arc<Mutex<bool>>,
-    arc_direction: &Arc<Mutex<Direction>>,
+    should_quit_receiver: &Receiver<bool>,
+    direction_receiver: &Receiver<Direction>,
 ) -> GameStatus {
-    // From what i understand the following line does that :
-    // direction.lock().unwrap() returns a MutexGuard<Direction>
-    // But then we immediately dereference it by calling *
-    // because Direction implements copy and clone, a copy of the locked direction is made and the lock is released
-    let direction = *arc_direction.lock().unwrap();
+    let mut direction = direction_receiver
+        .recv()
+        .expect("failed to read initial direction");
 
     let mut snake = Snake::new(
         direction,
@@ -144,14 +133,34 @@ pub fn render_snake(
 
     loop {
         thread::sleep(Duration::from_millis(100));
-        move_snake_towards_direction(arc_direction, &mut snake, food_col, food_row);
 
+        let should_quit = match should_quit_receiver.try_recv() {
+            Ok(sq) => sq,
+            Err(e) => match e {
+                std::sync::mpsc::TryRecvError::Disconnected => {
+                    panic!("receive disconnected should_quit")
+                }
+                std::sync::mpsc::TryRecvError::Empty => false,
+            },
+        };
+
+        direction = match direction_receiver.try_recv() {
+            Ok(new_direction) => new_direction,
+            Err(e) => match e {
+                std::sync::mpsc::TryRecvError::Disconnected => {
+                    panic!("receive disconnected should_quit")
+                }
+                std::sync::mpsc::TryRecvError::Empty => direction,
+            },
+        };
+
+        move_snake_towards_direction(direction, &mut snake, food_col, food_row);
         if is_snake_biting_itself(&snake) || board_boundaries.is_snake_outside_boundaries(&snake) {
             return GameStatus::Lost;
         } else if is_snake_eating_food(&snake, food_col, food_row) {
             grow_snake(&mut snake);
             (food_col, food_row) = food_generator.draw_random_food(&snake);
-        } else if *arc_should_quit.lock().unwrap() {
+        } else if should_quit {
             return GameStatus::Quit;
         }
     }

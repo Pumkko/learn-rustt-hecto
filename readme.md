@@ -8,7 +8,7 @@ I do think i understand a bit better when and why moving and borrowing happen
 # Todo (Technical)
 - [X] Move all terminal handling logic to the terminal module
 - [ ] Error handling
-- [ ] See if locking `should_quit` every render is the best way to gracefully stop the render loop
+- [X] Try to use mpsc
 
 # Todo (game)
 - [X] Detect collisions, either the snake hits itself or the boundaries of the board
