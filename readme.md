@@ -29,7 +29,7 @@ I had a couple of problems
 - The main thread will not send a new direction every render. that means the thread rendering the snake would peek 
 into a receiver that has no value. I then had to write a weird `match` if i have a direction i take otherwise i keep the old one.
 But i ended up writing that 
-```
+```rust
         let should_quit = match should_quit_receiver.try_recv() {
             Ok(sq) => sq,
             Err(e) => match e {
